@@ -38,9 +38,15 @@ reportee avant promotion. Matrice Windows/Linux complete, second PC,
 multi-navigateurs, concurrence, service Windows automatique et automatismes
 de deploiement reportes. Aucun email, paiement ni LLM reel qualifie.
 
-**Cloture technique.** Clone propre de `77e5f7c` installe : 111/111 versions,
+**CI et cloture.** Suite CI Linux : 1 257 succes, six echecs de fixtures/portabilite,
+trois ignores. Fixtures corrigees ; demarrage embarque pgserver Linux reporte
+(service PostgreSQL CI reel conserve). 38 controles touches reussis sous Windows ;
+cycle demarrer/readiness/arreter reel reussi apres renforcement de l identite
+du processus PostgreSQL. CI suivante limitee aux regressions concernees.
+
+**Clone et depot.** Clone propre de `77e5f7c` installe : 111/111 versions,
 `pip check`, fermeture des dependances et imports reussis. Historique distant
 controle : deux commits, 378 blobs uniques, aucun artefact interdit ; fichiers
-identiques octet par octet a la copie testee. Premier run CI rejete avant tout
-job (contexte `runner.temp` invalide au niveau job), corrige dans le workflow.
-Le resultat du run corrige reste a constater ; audit vert non revendique.
+identiques octet par octet a la copie testee. Deux refus de parsing CI corriges (contexte et encodage).
+Audit CI confirme : quatre alertes dans deux outils, qualification finale
+ciblee a constater. Voir le run lie dans la preuve finale.

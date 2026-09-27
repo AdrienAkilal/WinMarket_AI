@@ -45,3 +45,29 @@ def test_no_env_loading_during_test_collection():
     from src.core import config
     assert config._TEST_MODE is True
     assert not config.ANTHROPIC_API_KEY
+
+
+@pytest.mark.parametrize('kind', ['stale', 'foreign', 'matching'])
+def test_postgres_marker_requires_actual_process_identity(tmp_path, monkeypatch, kind):
+    import os
+    import psutil
+    import scripts.local_env as local
+    from types import SimpleNamespace
+    runtime = tmp_path/'runtime'
+    data = runtime/'pgdata'
+    data.mkdir(parents=True)
+    (data/'postmaster.pid').write_text(f"123\n{data}\n1000\n5546\n")
+    binary = tmp_path/'bin'/('postgres.exe' if os.name == 'nt' else 'postgres')
+    def process(pid):
+        if kind == 'stale':
+            raise psutil.NoSuchProcess(pid)
+        return SimpleNamespace(exe=lambda: str(binary if kind == 'matching' else tmp_path/'other'),
+            cmdline=lambda: [str(binary), '-D', str(data)], create_time=lambda: 1000)
+    monkeypatch.setattr(psutil, 'Process', process)
+    monkeypatch.setattr(local, 'port_open', lambda port: False)
+    meta = {'pg_port': 5546, 'pg_bin': str(binary.parent)}
+    if kind == 'foreign':
+        with pytest.raises(ValueError, match='identity changed'):
+            local.check_pg_identity(runtime, meta)
+    else:
+        assert local.check_pg_identity(runtime, meta) is (kind == 'matching')

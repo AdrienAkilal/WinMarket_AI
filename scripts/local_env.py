@@ -56,19 +56,38 @@ def read_runtime(runtime):
 
 
 def start_pg(runtime, meta):
+    marker = runtime/'pgdata'/'postmaster.pid'
+    identified = check_pg_identity(runtime, meta) if marker.exists() else False
     if port_open(meta['pg_port']):
-        # Never connect to or stop an unidentified endpoint.
-        check_pg_identity(runtime, meta)
+        if not identified:
+            raise ValueError('Unidentified PostgreSQL listener; operation refused')
         return
     pg_run(meta, 'pg_ctl', '-D', runtime/'pgdata', '-l', runtime/'postgres.log',
            '-o', f"-h 127.0.0.1 -p {meta['pg_port']}", '-w', 'start')
-    check_pg_identity(runtime, meta)
+    if not check_pg_identity(runtime, meta):
+        raise ValueError('PostgreSQL process absent after startup')
 
 
 def check_pg_identity(runtime, meta):
+    import psutil
     lines = (runtime/'pgdata'/'postmaster.pid').read_text().splitlines()
-    if Path(lines[1]).resolve() != (runtime/'pgdata').resolve() or int(lines[3]) != meta['pg_port']:
+    data = (runtime/'pgdata').resolve()
+    if Path(lines[1]).resolve() != data or int(lines[3]) != meta['pg_port']:
         raise ValueError('PostgreSQL identity mismatch; operation refused')
+    try:
+        process = psutil.Process(int(lines[0]))
+        expected = Path(meta['pg_bin']) / ('postgres.exe' if os.name == 'nt' else 'postgres')
+        command = process.cmdline()
+        data_args = [command[i+1] for i, arg in enumerate(command[:-1]) if arg == '-D']
+        if (Path(process.exe()).resolve() != expected.resolve()
+                or not any(Path(arg).resolve() == data for arg in data_args)
+                or abs(process.create_time() - int(lines[2])) > 3):
+            raise ValueError('PostgreSQL process identity changed; operation refused')
+    except psutil.NoSuchProcess:
+        if port_open(meta['pg_port']):
+            raise ValueError('Unidentified PostgreSQL listener; operation refused')
+        return False  # Stale marker: never send a signal to its former PID.
+    return True
 
 
 def stop_app(runtime, meta):
@@ -178,8 +197,8 @@ def main():
     if args.action == 'stop':
         stop_app(runtime,meta)
         if (runtime/'pgdata'/'postmaster.pid').exists():
-            check_pg_identity(runtime,meta)
-            pg_run(meta,'pg_ctl','-D',runtime/'pgdata','-m','fast','-w','stop')
+            if check_pg_identity(runtime,meta):
+                pg_run(meta,'pg_ctl','-D',runtime/'pgdata','-m','fast','-w','stop')
     elif args.action == 'status':
         print(json.dumps({'postgres_listening':port_open(meta['pg_port']),'app_listening':port_open(meta['app_port']),
                           'database':meta['database'],'app_url':values['BASE_URL'],'runtime':str(runtime)}))

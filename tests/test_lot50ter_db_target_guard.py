@@ -118,7 +118,7 @@ def test_a_tmp_path_sqlite_file_is_disposable(tmp_path):
 
 def test_a_relative_path_that_resolves_outside_any_allowed_root_is_refused(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path.parent)  # cwd is itself allowed (under the OS temp dir)... construct one that is not
-    outside = Path("C:/") / "wm50ter_never_created_by_this_test" / "x.db"
+    outside = Path(tmp_path.anchor) / "wm50ter_never_created_by_this_test" / "x.db"
     with pytest.raises(DatabaseTargetRefused):
         assert_disposable_test_target(f"sqlite:///{outside}")
     assert not outside.exists()

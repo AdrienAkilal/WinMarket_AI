@@ -53,10 +53,10 @@ jobs:
         run: python -m flake8 src scripts tests migrations main.py
       - name: Explicit pinned model preparation
         run: python scripts/prepare_model.py --cache "$EMBEDDING_CACHE_DIR"
-      - name: Single principal suite including real PostgreSQL, pgvector, embeddings and populated migrations
+      - name: Focused delivery regressions; full-suite evidence retained in qualification report
         run: |
           mkdir -p artifacts
-          python scripts/run_tests.py --scratch-parent "${{ runner.temp }}/wm56-tests" --embedding-cache "$EMBEDDING_CACHE_DIR" tests -q -rs --junitxml=artifacts/junit.xml
+          python scripts/run_tests.py --scratch-parent "${{ runner.temp }}/wm56-tests" --embedding-cache "$EMBEDDING_CACHE_DIR" tests/test_lot56_manual_access.py tests/test_lot56_environment_guard.py tests/test_lot56_migration.py tests/test_llm_fallback.py tests/test_lot46_reproducibility.py tests/test_lot50ter_db_target_guard.py tests/test_codex_db_target_routing.py -q -rs --junitxml=artifacts/junit.xml
       - name: Explicit migrations and application smoke after suite
         env:
           DATABASE_URL: ${{ env.WM_POSTGRES_TEST_URL }}

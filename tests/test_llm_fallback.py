@@ -1,6 +1,12 @@
 import pytest
 from src.agents.llm_client import LLMClient
 
+@pytest.fixture(autouse=True)
+def enable_in_memory_providers(monkeypatch):
+    from src.core import config
+    monkeypatch.setattr(config, "LLM_ENABLED", True)
+
+
 class FakeProvider:
     def __init__(self, name, result=None, error=None):
         self.name, self.result, self.error, self.calls = name, result, error, 0
