@@ -102,11 +102,45 @@
     "execution": "collection only; not counted as passed tests"
   },
   "black_format_api_smoke": "passed; no repository files reformatted",
-  "full_suite": "pending CI",
+  "full_suite": {
+    "commit": "e5068b57c127f5db3257d1edf0914d6e3652edf6",
+    "run_url": "https://github.com/AdrienAkilal/WinMarket_AI/actions/runs/36347755595",
+    "passed": 1265,
+    "skipped": 4,
+    "warnings": 12,
+    "failed": 0,
+    "duration_seconds": 270.36,
+    "qualification": "success",
+    "dependency_audit": "success",
+    "attempts": 1
+  },
   "raw_evidence_sha256": {
     "audit-before-56bis.json": "040c21822ce3e107f03950f73722e596296fcabc9066b28ea79afeabc85bb501",
     "audit-after.json": "1674770c70a29846824620470288355d10f7f969a90764893e4a3ba1d4b79b58",
     "clean-check.log": "28f318f00a6300093e12677f2066febb12e61ad34bab7098452325be533f032a",
     "collection.log": "9dcf4e6ba49816455d99cf74d436de003dc232451bc7bed6444eeed20eb55b9e"
-  }
+  },
+  "skips": [
+    {
+      "test": "test_a_stock_valid_returns_example_text",
+      "reason": "No bundled AO example fixture"
+    },
+    {
+      "test": "test_a_missing_database_url_auto_starts_a_real_disposable_pgserver_when_available",
+      "reason": "Embedded pgserver Linux Unix-socket adaptation deferred; explicit CI PostgreSQL service qualified"
+    },
+    {
+      "test": "test_blocking_rule_contract_risk_0",
+      "reason": "Blocking contract-risk rule not implemented; weighted criterion only"
+    },
+    {
+      "test": "test_blocking_rule_client_solidite_0",
+      "reason": "Blocking client-solidity rule not implemented; weighted criterion only"
+    }
+  ],
+  "official_metadata": {
+    "black": "https://pypi.org/pypi/black/26.3.1/json",
+    "pytest": "https://pypi.org/pypi/pytest/9.0.3/json"
+  },
+  "final_followup_scope": "Documentation/evaluation manifest only. Final delivery requires its own passing CI. No full-suite repeat."
 }

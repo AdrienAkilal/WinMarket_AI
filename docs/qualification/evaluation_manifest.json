@@ -1,5 +1,5 @@
 {
-  "commit": "ee3209b805283eada286126678732c9599237c0b",
+  "commit": "e5068b57c127f5db3257d1edf0914d6e3652edf6",
   "migration": "0017",
   "model": {
     "repository": "qdrant/paraphrase-multilingual-MiniLM-L12-v2-onnx-Q",
@@ -18,7 +18,7 @@
   "overlap_tokens": 32,
   "rrf_k": 60,
   "hashes": {
-    "requirements.lock.txt": "feb0ee5af42a5c516223953446d49f62810a0ae0fb7252f480d9384c0a431164",
+    "requirements.lock.txt": "fd892a008ee8e3992a93f532134053b4bfdc3fa053e54b842ba076982b1d1267",
     "src/core/models.py": "b4913dd3816874d122cbe0fce5214d2d0a81562a6628940c151763e76ce52941",
     "src/web/database/models.py": "02898a44824a1060f8e76853fd4ba69a813d5f8e34e755e8dc4b476f7229166b",
     "qa/evaluation_corpus.json": "114d162966dcf23dfb81ccf38a7a4f052f800927acc82f73929c68932576271c",

@@ -107,6 +107,6 @@ Checklist de reprise : confirmer SHA de dev ; installer le lock dans un venv neu
 
 ## Reserves de securite et futur deploiement
 
-Le lot 56 bis met Black a 26.3.1 et pytest a 9.0.3, avec leurs seules nouvelles dependances Pygments 2.21.0 et pytokens 0.4.1. Aucun outil ni alerte n'est retire du controle. L'audit local du lock corrige ne trouve plus de vulnerabilite connue ; le resultat CI exact est rattache au commit dans [le rapport du lot 56 bis](qualification/lot56bis.md). Les commandes d'installation et de reprise restent identiques. Une promotion vers main exige toujours une PR explicite et les controles de qualification.
+Le lot 56 bis met Black a 26.3.1 et pytest a 9.0.3, avec leurs seules nouvelles dependances Pygments 2.21.0 et pytokens 0.4.1. Aucun outil ni alerte n'est retire du controle. Les audits local et GitHub du lock corrige ne trouvent plus de vulnerabilite connue ; le resultat CI exact est rattache au commit dans [le rapport du lot 56 bis](qualification/lot56bis.md). Les commandes d'installation et de reprise restent identiques. Une promotion vers main exige toujours une PR explicite et les controles de qualification.
 
 Pour un futur deploiement, injecter les secrets hors Git, separer les roles de migration et d'execution selon la politique d'hebergement, ajouter TLS/reverse proxy, qualifier le stockage et la restauration sur cette infrastructure, adapter les garde-fous loopback avec revue explicite. Aucun hebergement, paiement, email reel, optimisation des tokens, B15 ou concurrence multi-processus n'est qualifie par ce lot.

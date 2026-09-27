@@ -21,12 +21,28 @@ annoncent Python 3.12. Les contraintes des plugins existants acceptent pytest 9.
 Seuls ajouts transitifs : Pygments 2.21.0 (pytest), pytokens 0.4.1 (Black).
 
 Lock regenere par la procedure existante : pip install des requirements, puis
-pip freeze, sans mise a jour globale. Lock QA conserve. Audit local : **0 alerte**,
-113 versions installees dans un venv neuf, pip check et coherence exacts reussis.
-Collecte : 1 269 tests, aucune erreur ; ce ne sont pas des tests executes.
-Une seule execution complete prevue en CI avec pytest 9, puis qualification
-habituelle sur le commit de documentation final. Les resultats definitifs et
-liens seront consignes apres observation, sans assimiler les skips a des succes.
+pip freeze, sans mise a jour globale. Lock QA conserve. Audit local et GitHub :
+**0 alerte**, sans ignore ni continue-on-error. Installation neuve : 113 versions,
+pip check, coherence exacte et imports reussis. Collecte : 1 269 tests sans erreur
+(une collecte n'est pas une execution). Black teste via son API, sans reformatage.
+
+[Suite complete CI sur e5068b5](https://github.com/AdrienAkilal/WinMarket_AI/actions/runs/36347755595) :
+**1 265 passes, 4 ignores, 12 avertissements**, 270,36 s ; une seule passe complete.
+Plugins conserves : cov 4.1.0, xdist 3.5.0, timeout 2.2.0, mock 3.12.0,
+benchmark 4.0.0, hypothesis 6.92.0 et Faker 21.0.0. Compatibilite constatee pour
+la collecte et la suite executee ; concurrence xdist et matrice OS non qualifiees.
+Migrations, healthz/readyz, lint, lock et historique Git controles en CI.
+
+Skips conserves, non comptes comme validations : exemple AO absent ; adaptation
+Unix-socket du pgserver embarque Linux reportee (service PostgreSQL CI reel) ;
+regles bloquantes Risque contractuel et Solidite client non implementees.
+Aucune reserve de dependances restante dans les audits executes. Les reports
+fonctionnels et d'infrastructure du lot 56 restent applicables.
+
+Le commit de compte rendu ne modifie que documentation et manifeste : code,
+tests, workflow et locks identiques a e5068b5. Sa propre CI reprend les controles
+existants et les regressions ciblees ; aucun skip CI et aucune deuxieme passe
+complete. Le SHA final et son run sont fournis avec la livraison.
 
 Commandes de reprise inchangees : `pip install -r requirements.lock.txt`,
 `python scripts/check_lock_consistency.py`, puis les commandes existantes du guide.
