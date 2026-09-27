@@ -26,7 +26,7 @@ Les autres attendus restent les regressions existantes, sans nouveau seuil metie
 
 ## Manifeste et changement d'index
 
-`scripts/build_evaluation_manifest.py` calcule les hashes du lock, des prompts, schemas/modeles et parametres ; il inclut le commit quand Git est disponible et permet de fournir explicitement le SHA verifie. `src/rag/model_artifact.json` epingle la revision HF et les cinq fichiers. Les resultats de qualification sont relies au manifeste et au SHA publie dans le rapport.
+`scripts/build_evaluation_manifest.py` calcule les hashes du lock, des prompts, schemas/modeles et parametres ; il inclut le commit quand Git est disponible et permet de fournir explicitement le SHA verifie. `src/rag/model_artifact.json` epingle la revision HF et les cinq fichiers. Generer le manifeste et les resultats dans un dossier prive hors depot/build, en indiquant le SHA teste. Ne pas commiter les sorties generees ; conserver ici uniquement les parametres et corpus synthetiques reproductibles.
 
 Dimensions 384, limite reelle 128 tokens (126 utiles), chevauchement 32, RRF K=60. La revision enregistree sur chaque version documentaire combine l'identite technique de decoupage et la revision chargee. Toute modification modele/tokenizer/dimension/decoupage exige une nouvelle identite de revision et une reconstruction explicite. Garder l'ancien cache/model pendant la validation, reconstruire les nouvelles versions, comparer les evaluations et basculer seulement apres succes. Le pipeline existant n'efface l'ancien index qu'apres construction reussie ; un echec le preserve. Une dimension autre que celle du stockage vector(384) est refusee : une nouvelle migration/index distinct est alors necessaire.
 

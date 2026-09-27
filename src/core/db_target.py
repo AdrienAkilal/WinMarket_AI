@@ -176,6 +176,13 @@ def resolve_database_url(*, explicit_url: str = "", cli_url: str = "") -> str:
     if _in_test_mode():
         assert_disposable_test_target(url)
     else:
-        from src.core.environment_guard import validate_url
-        validate_url(url)
+        # Lot 58: this is the function Alembic itself calls to run real migrations — it must accept
+        # a real, remote deployment target (Render or equivalent) exactly like
+        # environment_guard.validate_environment does, using the SAME single switch
+        # (is_deployment_mode) rather than a second, divergent notion of "is this a deployment".
+        from src.core.environment_guard import is_deployment_mode, validate_deployment_url, validate_url
+        if is_deployment_mode(os.environ):
+            validate_deployment_url(url)
+        else:
+            validate_url(url)
     return url

@@ -13,7 +13,10 @@ sys.path.insert(0,str(ROOT))
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--env-file',type=Path,required=True)
+    parser.add_argument('--env-file',type=Path,
+                         help='Local .env file (default local mode). Omit to read the real process '
+                              'environment instead (server-managed config/secrets, e.g. Render) — '
+                              'same validation, same operator rules either way.')
     parser.add_argument('--credential-file',type=Path,required=True)
     parser.add_argument('action',choices=['bootstrap','list','activate','revoke'])
     parser.add_argument('--actor')
@@ -24,16 +27,22 @@ def main():
     parser.add_argument('--max-analyses',type=int)
     args = parser.parse_args()
     from src.core.environment_guard import validate_path, validate_environment
-    envfile = validate_path(args.env_file)
     credential_path = validate_path(args.credential_file)
-    if (envfile.parent/'maintenance.lock').exists():
-        raise RuntimeError('Runtime is in backup/restore maintenance')
-    from dotenv import dotenv_values
-    values = dotenv_values(envfile,interpolate=False)
+    if args.env_file is not None:
+        envfile = validate_path(args.env_file)
+        if (envfile.parent/'maintenance.lock').exists():
+            raise RuntimeError('Runtime is in backup/restore maintenance')
+        from dotenv import dotenv_values
+        values = dotenv_values(envfile,interpolate=False)
+        os.environ['WM_ENV_FILE'] = str(envfile)
+    else:
+        # Server-managed configuration (e.g. Render): the real process environment IS the
+        # configuration, exactly like the running application itself reads it — never a second,
+        # divergent source of truth, never a local file assumed to exist.
+        values = dict(os.environ)
     validate_environment(values,ROOT)
     if not values.get('DATABASE_URL'):
         parser.error('Explicit isolated database URL required')
-    os.environ['WM_ENV_FILE'] = str(envfile)
     from src.web.database.session import session_scope
     from src.web.auth import manual_access as service
     from src.web.database.models import User, Membership, Subscription

@@ -1,0 +1,70 @@
+# Render Blueprint — WinMarket AI, lot 58. PREPARED, NOT DEPLOYED (no Render account access from this
+# session). Review docs/DEPLOY_RENDER.md before applying. Plan/region/sizeGB below are conservative
+# placeholders — every one of them is a real, billed choice; confirm cost before creating anything.
+databases:
+  - name: winmarket-ai-58-db
+    plan: basic-256mb
+    postgresMajorVersion: "16"
+    region: oregon
+    ipAllowList: []  # Render-managed network only; the app service reaches it over Render's private network
+
+services:
+  - name: winmarket-ai-58
+    type: web
+    runtime: python
+    region: oregon
+    plan: starter
+    branch: dev
+    autoDeploy: false  # controlled deploys only — "Deploy latest commit" / "After CI checks pass" from the Dashboard
+    buildCommand: pip install -r requirements.lock.txt
+    # Migrations run BEFORE traffic is cut over to the new instance. The persistent disk is NOT mounted
+    # here (Render: disks are unavailable during build/pre-deploy) — this step needs the database only.
+    preDeployCommand: python -m alembic upgrade head
+    # The disk IS mounted here (this is the running instance). Model prep is idempotent and
+    # hash-verified (src/rag/model_artifact.json) — cheap to re-run on every boot once cached on disk.
+    # --workers 1 is REQUIRED: main.py's startup reconciles jobs and starts a background sweeper: more
+    # than one worker process would run both independently against the same database.
+    startCommand: >-
+      python scripts/prepare_model.py --cache "$EMBEDDING_CACHE_DIR" &&
+      python -m uvicorn main:app --host 0.0.0.0 --port "$PORT" --workers 1
+    disk:
+      name: winmarket-ai-58-data
+      mountPath: /var/data
+      sizeGB: 10
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: winmarket-ai-58-db
+          property: connectionString
+      - key: BASE_URL
+        sync: false  # the real https://<service>.onrender.com URL (or custom domain), known only after first create
+      - key: SESSION_SECRET
+        sync: false  # generate locally: python -c "import secrets; print(secrets.token_urlsafe(48))" — paste once, never in Git
+      - key: DATA_DIR
+        value: /var/data/app-data
+      - key: OUTPUT_DIR
+        value: /var/data/app-data/outputs
+      - key: LOCAL_STORAGE_PATH
+        value: /var/data/app-data
+      - key: LOGS_DIR
+        value: /var/data/logs
+      - key: EMBEDDING_CACHE_DIR
+        value: /var/data/model-cache
+      - key: RAG_HYBRID_MODE_ENABLED
+        value: "true"
+      - key: STORAGE_BACKEND
+        value: local
+      - key: LLM_ENABLED
+        value: "false"  # explicit product choice deferred to the user — flip to "true" once LLM_PROVIDER_PRIORITY keys are set
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: MISTRAL_API_KEY
+        sync: false
+      - key: PAPPERS_API_TOKEN
+        sync: false
+      - key: PAPPERS_ENABLED
+        value: "false"

@@ -23,7 +23,13 @@ from src.core.environment_guard import validate_environment, validate_path
 validate_path(ROOT_DIR)
 if not _TEST_MODE:
     _env_file = validate_path(os.getenv("WM_ENV_FILE", str(ROOT_DIR / ".env")))
-    load_dotenv(_env_file, override=True)
+    # A real deployment (APP_ENV=production, Render or equivalent) injects its own environment
+    # variables (Dashboard/secrets) — those must never be silently clobbered by a `.env`-shaped file
+    # that happens to exist in the deployed filesystem. `override=False` here means "process
+    # environment wins"; local/dev usage (APP_ENV unset/development) keeps the existing behaviour
+    # (`.env` always wins) unchanged.
+    _deployment_mode = os.getenv("APP_ENV", "development").strip().lower() == "production"
+    load_dotenv(_env_file, override=not _deployment_mode)
     validate_environment(os.environ, ROOT_DIR)
 DATA_DIR = Path(os.getenv("DATA_DIR", str(ROOT_DIR / "data"))).resolve()
 OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", str(DATA_DIR / "outputs"))).resolve()

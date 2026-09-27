@@ -95,11 +95,13 @@ Ne pas executer `migrate` entre init et restore : la cible doit etre vide. La re
 
 ```powershell
 $tests = Join-Path $env:LOCALAPPDATA 'WM56-tests'
-.\.venv\Scripts\python.exe scripts/run_tests.py --scratch-parent $tests --embedding-cache "$runtime\models" tests -q -rs --junitxml=artifacts/junit.xml
+$evidence = Join-Path $env:LOCALAPPDATA 'WM56-private-evidence'
+New-Item -ItemType Directory -Force -Path $evidence | Out-Null
+.\.venv\Scripts\python.exe scripts/run_tests.py --scratch-parent $tests --embedding-cache "$runtime\models" tests -q -rs --junitxml="$evidence\junit.xml"
 .\.venv\Scripts\python.exe -m flake8 src scripts tests migrations main.py
 ```
 
-Creer `artifacts` au besoin. Le lanceur declare le mode test AVANT les imports, cree une racine neuve, supprime les credentials fournisseurs et reutilise `db_target`. Les tests PostgreSQL lancent leur propre pgserver jetable si aucune URL dediee n'est fournie. En CI, `WM_REQUIRE_POSTGRES=1` interdit de presenter une absence de PostgreSQL comme un succes. Garder des chemins courts sous Windows pour les quatre UUID du stockage prive.
+Conserver les preuves dans `$evidence`, hors depot et contexte de build. Le lanceur declare le mode test AVANT les imports, cree une racine neuve, supprime les credentials fournisseurs et reutilise `db_target`. Les tests PostgreSQL lancent leur propre pgserver jetable si aucune URL dediee n'est fournie. En CI, `WM_REQUIRE_POSTGRES=1` interdit de presenter une absence de PostgreSQL comme un succes. Garder des chemins courts sous Windows pour les quatre UUID du stockage prive.
 
 La recette `qa/browser_recipe.py` utilise Playwright installe dans un venv d'outillage distinct (lock `qa/requirements.lock.txt`). Elle exige un runtime exclusivement synthetique lance avec `local_env.py start --synthetic-recipe`. Cette option injecte une reponse capturee UNIQUEMENT pour la recherche de faits ; scoring, autorisations, migrations, PostgreSQL, embeddings, verification de citation et livrables restent reels. Ne jamais utiliser ce mode avec des documents clients.
 
@@ -107,6 +109,6 @@ Checklist de reprise : confirmer SHA de dev ; installer le lock dans un venv neu
 
 ## Reserves de securite et futur deploiement
 
-Le lot 56 bis met Black a 26.3.1 et pytest a 9.0.3, avec leurs seules nouvelles dependances Pygments 2.21.0 et pytokens 0.4.1. Aucun outil ni alerte n'est retire du controle. Les audits local et GitHub du lock corrige ne trouvent plus de vulnerabilite connue ; le resultat CI exact est rattache au commit dans [le rapport du lot 56 bis](qualification/lot56bis.md). Les commandes d'installation et de reprise restent identiques. Une promotion vers main exige toujours une PR explicite et les controles de qualification.
+Le lot 56 bis met Black a 26.3.1 et pytest a 9.0.3, avec leurs seules nouvelles dependances Pygments 2.21.0 et pytokens 0.4.1. Aucun outil ni alerte n'est retire du controle. Les audits local et GitHub du lock corrige ne trouvent plus de vulnerabilite connue ; verifier les checks GitHub Actions du SHA utilise. Les commandes d'installation et de reprise restent identiques. Une promotion vers main exige toujours une PR explicite et les controles de qualification.
 
 Pour un futur deploiement, injecter les secrets hors Git, separer les roles de migration et d'execution selon la politique d'hebergement, ajouter TLS/reverse proxy, qualifier le stockage et la restauration sur cette infrastructure, adapter les garde-fous loopback avec revue explicite. Aucun hebergement, paiement, email reel, optimisation des tokens, B15 ou concurrence multi-processus n'est qualifie par ce lot.

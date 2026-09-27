@@ -58,3 +58,7 @@ docs/qa/
 qa/artifacts/
 playwright-report/
 test-results/
+
+# Internal evidence belongs in an explicitly private directory outside this repository.
+/RAPPORT_PASSATION.md
+/docs/qualification/

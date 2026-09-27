@@ -64,8 +64,15 @@ def get_engine() -> Engine:
         if _in_test_mode():
             assert_disposable_test_target(url)
         if not _in_test_mode():
-            from src.core.environment_guard import validate_url
-            validate_url(url)
+            # Lot 58: a real deployment (APP_ENV=production, Render or equivalent) needs a real,
+            # remote PostgreSQL target — the SAME single switch (is_deployment_mode) used by
+            # src.core.config and src.core.db_target, never a third, divergent notion of "is this
+            # a deployment" at the one place that actually opens the connection.
+            from src.core.environment_guard import is_deployment_mode, validate_deployment_url, validate_url
+            if is_deployment_mode({"APP_ENV": config.APP_ENV}):
+                validate_deployment_url(url)
+            else:
+                validate_url(url)
         _engine = create_engine(url, pool_pre_ping=True, future=True)
         if _engine.dialect.name == "sqlite":
             # SQLite ignores foreign keys (including the composite

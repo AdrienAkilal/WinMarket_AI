@@ -7,10 +7,10 @@ import re
 import subprocess
 
 ROOT=Path(__file__).resolve().parents[1]
-DIRECTORIES=('src','tests','scripts','qa','templates','static','prompts','migrations','.github','docs/api','docs/qualification')
+DIRECTORIES=('src','tests','scripts','qa','templates','static','prompts','migrations','.github','docs/api')
 ROOT_FILES=('main.py','README.md','LICENSE','alembic.ini','pytest.ini','requirements.txt','requirements-test.txt',
-            'requirements.lock.txt','.env.example','.gitignore','.flake8','docker-compose.yml','RAPPORT_PASSATION.md')
-DOC_FILES=('docs/REPRISE_PROJET.md','docs/CONTRIBUTION.md','docs/ARCHITECTURE.md','docs/EVALUATION.md','docs/README_DEPOT_INITIAL.md')
+            'requirements.lock.txt','.env.example','.gitignore','.flake8','docker-compose.yml','render.yaml')
+DOC_FILES=('docs/REPRISE_PROJET.md','docs/CONTRIBUTION.md','docs/ARCHITECTURE.md','docs/EVALUATION.md','docs/README_DEPOT_INITIAL.md','docs/DEPLOY_RENDER.md')
 PATTERNS=[re.compile(rb'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----'),
           re.compile(rb'(?:ghp_|github_pat_)[A-Za-z0-9_]{30,}'),
           re.compile(rb'sk-ant-api[0-9]*-[A-Za-z0-9_-]{25,}'),

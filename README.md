@@ -55,5 +55,7 @@ puis importe ses propres documents. Une inscription seule ne donne aucun acces m
 
 Les tests utilisent des bases jetables et refusent les cibles conservees.
 [Guide detaille](docs/REPRISE_PROJET.md) : configuration, sauvegarde/restauration,
-suite complete. [Rapport et limites](RAPPORT_PASSATION.md) : preuves reelles,
-simulation LLM, reserves de dependances et validations reportees.
+suite complete. [Evaluation reproductible](docs/EVALUATION.md) : corpus synthetique,
+parametres et distinction entre embeddings reels et LLM simule. Les resultats
+et captures restent dans un dossier prive hors depot ; consulter les checks
+GitHub Actions du SHA utilise pour leur statut public minimal.

@@ -1,9 +1,0 @@
-{
-  "captured_files": 351,
-  "source_code_comparison": "read-only SHA-256",
-  "changed_since_capture": [],
-  "capture_manifest_sha256": "f0163533930fdf487acd97f80f965f921ad99756b1d43a50546a068e3e25d1ee",
-  "before_changes_archive_sha256": "936364e9c9368c5bb6f2efe8ad2359db3a2884ba7f4d6fffad5eecd422aba256",
-  "scope": "Captured code only; not a claim about concurrent user changes to databases/private files",
-  "operations": "No source writes, source git mutation, source venv install, old database connection/migration, source process interruption or old-backup operation"
-}
