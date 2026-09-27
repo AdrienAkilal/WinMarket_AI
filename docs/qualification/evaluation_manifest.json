@@ -1,5 +1,5 @@
 {
-  "commit": "unpublished-working-tree",
+  "commit": "ee3209b805283eada286126678732c9599237c0b",
   "migration": "0017",
   "model": {
     "repository": "qdrant/paraphrase-multilingual-MiniLM-L12-v2-onnx-Q",

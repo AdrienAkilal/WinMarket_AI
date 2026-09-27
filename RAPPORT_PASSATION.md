@@ -1,52 +1,44 @@
 # Passation lot 56 - 27 septembre 2026
 
-**Perimetre livre.** Copie autonome, installation Python 3.12 verrouillee,
-PostgreSQL/pgvector isoles, modele local epingle, inscription en attente,
-activation/revocation operateur avec echeance, quota et audit. README et guide de
-reprise ; CI de qualification et audit des dependances. Livraison sur `dev`
-uniquement, sans deploiement ni fusion vers `main`.
+**Livre sur dev.** Version autonome : PostgreSQL/pgvector isoles, dependances
+verrouillees, modele local epingle, inscription en attente et activation/revocation
+operateur sans paiement (echeance, quota, audit). README : installer, configurer,
+demarrer, tester et administrer les comptes. Aucun deploiement ni fusion vers main.
 
-**Preservation.** Aucun compte reel, document prive, secret, `.env`, SQLite ou
-sauvegarde n'est inclus. L'ancien code, sa base et son serveur ne sont pas des
-cibles de ces operations. Les 351 fichiers de code captures sont identiques a
-leur capture initiale (empreintes dans `docs/qualification`). Ce controle ne
-pretend pas figer l'activite concurrente de l'ancienne base. Aucune migration
-complete de l'historique : anciennes analyses et dependances volontairement
-exclues. Les anciens PDF/DOCX signales absents au lot 55 bis ne sont ni requis ni
-reconstitues par ce lot ; la source et ses sauvegardes restent conservees.
+**Preservation.** Aucun compte reel, document prive, secret, .env, SQLite ou backup
+publie. L'ancienne installation, sa base et son serveur ne sont pas des cibles de
+ces operations. Les 351 fichiers de code captures sont restes identiques ; cette
+preuve ne pretend pas figer l'activite concurrente de l'ancienne base. Anciennes
+analyses et dependances volontairement non importees : ce n'est pas une migration
+complete de l'historique. Les deux anciens PDF/DOCX manquants du lot 55 bis restent
+signales absents, sans bloquer cette version. Source et sauvegardes conservees.
 
-**Tests executes.** Installation neuve : 111 distributions du lock, `pip check`
-et coherence exacts reussis. Suite complete unique : 1 244 succes, 18 echecs,
-4 ignores ; apres correction des fixtures historiques et contrats de tests,
-les 18 cas en echec ont tous reussi (17,44 s), sans relancer la suite entiere.
-75 controles cibles anterieurs reussis. Recette Edge : 10 controles reussis,
-inscription/attente/activation/configuration/document/analyse/resultat/revision,
-isolation et revocation sur session existante. Sauvegarde/restauration reelle :
-24 tables, 52 lignes, 8 fichiers, empreintes egales ; connexion, historique,
-PDF/DOCX, document prive et recherche verifies apres restauration.
-PostgreSQL, pgvector et embeddings reels ; LLM simule pour la recette,
-aucun appel fournisseur reel. Petit corpus RAG : rappel@3 2/2 et citations 6/6,
-sans pretention de performance generale. Quatre ignores : exemple AO absent,
-symlink Windows sans privilege, deux regles bloquantes non implementees.
+**Preuves executees.** Clone propre de dev installe : 111/111 versions exactes,
+pip check, dependances et imports conformes. Historique Git distant inspecte ;
+fichiers du clone initial identiques octet par octet a la copie testee.
+Suite Windows unique : 1 244 succes, 18 echecs, 4 ignores ; les 18 cas corriges
+ont ensuite tous reussi. 75 tests cibles anterieurs et 38 derniers controles reussis.
+Suite CI Linux : 1 257 succes, 6 echecs de fixtures/portabilite, 3 ignores ;
+corrections ciblees et un report explicite, sans nouvelle suite complete.
+[CI finale du code ee3209b](https://github.com/AdrienAkilal/WinMarket_AI/actions/runs/36305277828) :
+qualification reussie, **68 tests passes, 1 ignore**, migrations, healthz/readyz,
+lock, lint et controle de l'historique Git reussis. Demarrage/arret local reel
+verifie apres renforcement de l'identification des processus PostgreSQL.
 
-**Reserves et reports.** Audit : quatre alertes sur Black 23.12.1
+Recette Edge : 10 controles reussis, de l'inscription au resultat/revision,
+isolation et revocation comprises. Restauration : 24 tables, 52 lignes, 8 fichiers,
+empreintes egales, connexion et livrables verifies. PostgreSQL, pgvector et embeddings
+reels ; LLM simule, aucun appel fournisseur reel. Corpus RAG cible : rappel@3 2/2,
+citations 6/6 ; aucune generalisation de performance.
+
+**Reserve de cloture.** Audit CI en echec : quatre alertes sur Black 23.12.1
 (PYSEC-2024-48, PYSEC-2026-2120, PYSEC-2026-2121) et pytest 7.4.3
 (PYSEC-2026-1845). Black non execute ; tests dans une racine privee neuve.
-Le job d'audit reste bloquant, sans exclusion d'identifiants : aucune CI
-entierement verte n'est revendiquee. Mise a jour/requalification de ces outils
-reportee avant promotion. Matrice Windows/Linux complete, second PC,
-multi-navigateurs, concurrence, service Windows automatique et automatismes
-de deploiement reportes. Aucun email, paiement ni LLM reel qualifie.
+Aucune alerte masquee : mise a jour/requalification reportee avant promotion,
+CI globale non verte. Details et empreintes : `docs/qualification`.
 
-**CI et cloture.** Suite CI Linux : 1 257 succes, six echecs de fixtures/portabilite,
-trois ignores. Fixtures corrigees ; demarrage embarque pgserver Linux reporte
-(service PostgreSQL CI reel conserve). 38 controles touches reussis sous Windows ;
-cycle demarrer/readiness/arreter reel reussi apres renforcement de l identite
-du processus PostgreSQL. CI suivante limitee aux regressions concernees.
-
-**Clone et depot.** Clone propre de `77e5f7c` installe : 111/111 versions,
-`pip check`, fermeture des dependances et imports reussis. Historique distant
-controle : deux commits, 378 blobs uniques, aucun artefact interdit ; fichiers
-identiques octet par octet a la copie testee. Deux refus de parsing CI corriges (contexte et encodage).
-Audit CI confirme : quatre alertes dans deux outils, qualification finale
-ciblee a constater. Voir le run lie dans la preuve finale.
+**Reportes.** Matrice Windows/Linux complete, second PC, multi-navigateurs,
+concurrence, service Windows automatique, deploiement avance et demarrage pgserver
+embarque sous Linux (la CI utilise un service PostgreSQL reel). Autres ignores :
+exemple AO absent, symlink Windows sans privilege et deux regles bloquantes non
+implementees. Aucun paiement, email ou LLM reel qualifie.

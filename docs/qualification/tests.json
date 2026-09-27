@@ -20,5 +20,20 @@
     "skips": 0,
     "raw_report_sha256": "7cfe4265939c16a3193c00537a6563e4bb063dfd8b191156d4eb14aee18eeaf8"
   },
-  "interpretation": "One full run, then only the 18 failing cases rerun; no claim of a second full green run."
+  "interpretation": "One full run, then only the 18 failing cases rerun; no claim of a second full green run.",
+  "focused_lifecycle_and_ci_fixtures": {
+    "tests": 38,
+    "failures": 0,
+    "skips": 0,
+    "raw_report_sha256": "b6da516682c87dab447744ec4eb85ae4abe90facb8641d40cb7dc94b75d740e0"
+  },
+  "ci_full_run": {
+    "commit": "021fbd2bc0e66c21d5d5d9b917204a76234f993d",
+    "url": "https://github.com/AdrienAkilal/WinMarket_AI/actions/runs/36304460851",
+    "passed": 1257,
+    "failed": 6,
+    "skipped": 3,
+    "failure_scope": "4 fake LLM fixtures disabled by CI env, Linux-only embedded PostgreSQL Unix-socket support, Windows path literal in refusal fixture",
+    "resolution": "Fixture corrections targeted; embedded PostgreSQL Linux deferred with explicit skip, PostgreSQL service tests retained."
+  }
 }

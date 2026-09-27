@@ -1,0 +1,54 @@
+{
+  "code_commit": "ee3209b805283eada286126678732c9599237c0b",
+  "ci_run": "https://github.com/AdrienAkilal/WinMarket_AI/actions/runs/36305277828",
+  "qualification": "success",
+  "ci_tests": {
+    "passed": 68,
+    "skipped": 1,
+    "failed": 0
+  },
+  "ci_migrations_and_health": "passed",
+  "ci_git_history_scan": "passed",
+  "dependency_audit": {
+    "conclusion": "failure",
+    "vulnerabilities": 4,
+    "packages": [
+      "black==23.12.1",
+      "pytest==7.4.3"
+    ],
+    "ignored_ids": []
+  },
+  "clean_clone": {
+    "installed_commit": "77e5f7cd477c3e50a5fc3edb2b2dc85ce4a70d27",
+    "locked_packages": 111,
+    "installed_packages": 111,
+    "pip_check": "passed",
+    "exact_lock_check": "passed",
+    "original_clone_bytes_match_tested_files": true,
+    "later_changes": "Only targeted lifecycle and test/CI corrections, validated by 38 local tests, real start/stop, then 68 CI tests. Dependency lock unchanged."
+  },
+  "private_source_history_imported": false,
+  "main_changed": false,
+  "deployed": false,
+  "llm": "synthetic only",
+  "embeddings": "real pinned ONNX model",
+  "browser": "Edge, 10 passed",
+  "backup_restore": {
+    "tables": 24,
+    "rows": 52,
+    "files": 8,
+    "all_hashes_equal": true
+  },
+  "lifecycle_final": "real start, readyz 200, stop, both ports closed",
+  "deferred": [
+    "full OS matrix",
+    "second PC",
+    "multiple browsers",
+    "concurrency",
+    "automatic Windows service",
+    "advanced deployment",
+    "embedded PostgreSQL on Linux",
+    "development dependency security upgrades"
+  ],
+  "publication_note": "Final follow-up commit changes only documentation/evidence; CI not rerun for documentation."
+}
