@@ -4,7 +4,7 @@ Cette version contient le code et des fixtures synthetiques. Elle ne contient au
 
 ## Prerequis et perimetre qualifie
 
-Windows, Python 3.12 (qualification locale : 3.12.10), Git pour recuperer le depot, acces aux distributions PyPI et aux poids publics pour la preparation initiale. Le lock applicatif contient 111 distributions. PostgreSQL 16.2 et pgvector 0.6.2 sont fournis par `pgserver==0.1.4` dans le venv neuf ; aucune installation de service ni droit administrateur n'est necessaire dans un dossier appartenant a l'utilisateur. Ne desactivez pas une protection Windows si elle refuse une DLL : conservez le message et faites diagnostiquer la politique locale.
+Windows, Python 3.12 (qualification locale : 3.12.10), Git pour recuperer le depot, acces aux distributions PyPI et aux poids publics pour la preparation initiale. Le lock applicatif contient 113 distributions. PostgreSQL 16.2 et pgvector 0.6.2 sont fournis par `pgserver==0.1.4` dans le venv neuf ; aucune installation de service ni droit administrateur n'est necessaire dans un dossier appartenant a l'utilisateur. Ne desactivez pas une protection Windows si elle refuse une DLL : conservez le message et faites diagnostiquer la politique locale.
 
 Linux est couvert par la configuration CI ; seul un run GitHub effectivement observe constitue sa qualification. Docker Compose est une alternative documentee, pas une preuve locale Docker. La copie de reprise sur cette machine ne prouve pas un essai sur l'ordinateur du second developpeur.
 
@@ -107,6 +107,6 @@ Checklist de reprise : confirmer SHA de dev ; installer le lock dans un venv neu
 
 ## Reserves de securite et futur deploiement
 
-L'audit du lock existant trouve quatre vulnerabilites des outils de developpement Black 23.12.1 et pytest 7.4.3 (voir rapport). Il reste visible comme un job CI en echec, sans identifiant ignore ni mise a jour majeure non testee. Black n'est pas execute ; les tests utilisent une racine privee creee par le lanceur. Une promotion vers main exige la resolution/revue de ces constats, la recette et une PR explicite.
+Le lot 56 bis met Black a 26.3.1 et pytest a 9.0.3, avec leurs seules nouvelles dependances Pygments 2.21.0 et pytokens 0.4.1. Aucun outil ni alerte n'est retire du controle. L'audit local du lock corrige ne trouve plus de vulnerabilite connue ; le resultat CI exact est rattache au commit dans [le rapport du lot 56 bis](qualification/lot56bis.md). Les commandes d'installation et de reprise restent identiques. Une promotion vers main exige toujours une PR explicite et les controles de qualification.
 
 Pour un futur deploiement, injecter les secrets hors Git, separer les roles de migration et d'execution selon la politique d'hebergement, ajouter TLS/reverse proxy, qualifier le stockage et la restauration sur cette infrastructure, adapter les garde-fous loopback avec revue explicite. Aucun hebergement, paiement, email reel, optimisation des tokens, B15 ou concurrence multi-processus n'est qualifie par ce lot.

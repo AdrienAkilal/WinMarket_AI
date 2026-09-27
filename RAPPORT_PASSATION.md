@@ -1,3 +1,5 @@
+> Etat historique du lot 56. Le traitement de la reserve CI est documente dans [le lot 56 bis](docs/qualification/lot56bis.md).
+
 # Passation lot 56 - 27 septembre 2026
 
 **Livre sur dev.** Version autonome : PostgreSQL/pgvector isoles, dependances

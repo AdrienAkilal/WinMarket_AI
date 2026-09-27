@@ -1,0 +1,112 @@
+{
+  "base_commit": "df73fa6908b75dfecc978b20801893490f07d592",
+  "previous_qualified_commit": "ee3209b805283eada286126678732c9599237c0b",
+  "base_difference": "Documentation/evidence only; no application, migration, test, dependency or workflow change",
+  "lock_delta": {
+    "pytokens": {
+      "before": null,
+      "after": "0.4.1"
+    },
+    "black": {
+      "before": "23.12.1",
+      "after": "26.3.1"
+    },
+    "pygments": {
+      "before": null,
+      "after": "2.21.0"
+    },
+    "pytest": {
+      "before": "7.4.3",
+      "after": "9.0.3"
+    }
+  },
+  "unchanged_plugin_versions": {
+    "pytest-cov": "4.1.0",
+    "pytest-xdist": "3.5.0",
+    "pytest-timeout": "2.2.0",
+    "pytest-mock": "3.12.0",
+    "pytest-benchmark": "4.0.0",
+    "hypothesis": "6.92.0",
+    "Faker": "21.0.0"
+  },
+  "python": "3.12.10",
+  "minimum_python_for_both_updates": ">=3.10",
+  "audit_before": [
+    {
+      "name": "black",
+      "version": "23.12.1",
+      "vulnerabilities": [
+        {
+          "id": "PYSEC-2024-48",
+          "aliases": [
+            "GHSA-fj7x-q9j7-g6q6",
+            "CVE-2024-21503"
+          ],
+          "fix_versions": [
+            "24.3.0"
+          ]
+        },
+        {
+          "id": "PYSEC-2026-2121",
+          "aliases": [
+            "GHSA-3936-cmfr-pm3m",
+            "CVE-2026-32274"
+          ],
+          "fix_versions": [
+            "26.3.1"
+          ]
+        },
+        {
+          "id": "PYSEC-2026-2120",
+          "aliases": [
+            "CVE-2026-31900",
+            "GHSA-v53h-f6m7-xcgm"
+          ],
+          "fix_versions": [
+            "26.3.0"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "pytest",
+      "version": "7.4.3",
+      "vulnerabilities": [
+        {
+          "id": "PYSEC-2026-1845",
+          "aliases": [
+            "GHSA-6w46-j5rx-g56g",
+            "CVE-2025-71176"
+          ],
+          "fix_versions": [
+            "9.0.3"
+          ]
+        }
+      ]
+    }
+  ],
+  "audit_after": {
+    "findings": 0,
+    "ignored_ids": []
+  },
+  "fresh_lock_install": {
+    "packages": 113,
+    "pip_check": "passed",
+    "exact_lock_consistency": "passed",
+    "orphans": [],
+    "missing_imports": []
+  },
+  "collection": {
+    "tests": 1269,
+    "errors": 0,
+    "execution": "collection only; not counted as passed tests"
+  },
+  "black_format_api_smoke": "passed; no repository files reformatted",
+  "full_suite": "pending CI",
+  "raw_evidence_sha256": {
+    "audit-before-56bis.json": "040c21822ce3e107f03950f73722e596296fcabc9066b28ea79afeabc85bb501",
+    "audit-after.json": "1674770c70a29846824620470288355d10f7f969a90764893e4a3ba1d4b79b58",
+    "clean-check.log": "28f318f00a6300093e12677f2066febb12e61ad34bab7098452325be533f032a",
+    "collection.log": "9dcf4e6ba49816455d99cf74d436de003dc232451bc7bed6444eeed20eb55b9e"
+  }
+}
