@@ -1,0 +1,32 @@
+{
+  "commit": "unpublished-working-tree",
+  "migration": "0017",
+  "model": {
+    "repository": "qdrant/paraphrase-multilingual-MiniLM-L12-v2-onnx-Q",
+    "revision": "faf4aa4225822f3bc6376869cb1164e8e3feedd0",
+    "files": {
+      "config.json": "c8ec081fdad2df991bf5abbf18418fec7a5cdaa421f60ffb060a30040b8c376f",
+      "model_optimized.onnx": "634d0f66c29dc934c8fa72b8a4fe91dd4d420a22f1d82a241058d4316e659a99",
+      "special_tokens_map.json": "8c785abebea9ae3257b61681b4e6fd8365ceafde980c21970d001e834cf10835",
+      "tokenizer.json": "fa685fc160bbdbab64058d4fc91b60e62d207e8dc60b9af5c002c5ab946ded00",
+      "tokenizer_config.json": "0666eebf692422757e1dddf3c9fb1ded73ba3dc726c5828671fc89e45bf3609f"
+    }
+  },
+  "dimension": 384,
+  "token_limit": 128,
+  "content_tokens": 126,
+  "overlap_tokens": 32,
+  "rrf_k": 60,
+  "hashes": {
+    "requirements.lock.txt": "feb0ee5af42a5c516223953446d49f62810a0ae0fb7252f480d9384c0a431164",
+    "src/core/models.py": "b4913dd3816874d122cbe0fce5214d2d0a81562a6628940c151763e76ce52941",
+    "src/web/database/models.py": "02898a44824a1060f8e76853fd4ba69a813d5f8e34e755e8dc4b476f7229166b",
+    "qa/evaluation_corpus.json": "114d162966dcf23dfb81ccf38a7a4f052f800927acc82f73929c68932576271c",
+    "src/rag/chunking.py": "978231e211ac0d60d0c34b7f32ea83d9e2e15790c71b40e980264538a7f02bd6",
+    "src/rag/hybrid_search.py": "25c409b12dc1c2dd4f2f7b2ae445995219b86a6d009e3dbd978881c42c1ed915",
+    "prompts/extraction_ao.md": "bb6b38c4c3a36e66c6b61f36a353ab78477feed416f16e74709a7642aeff0112",
+    "prompts/generation_candidature.md": "06076cb4d5edb58e1894f4784168ebebe9f49023314a963dfb5bef7d712fcf11",
+    "prompts/scoring_metier.md": "25373d5e99c8482e5ae6624bf6e34637b14d5e81642c131f73f40fdd6374141c"
+  },
+  "llm_evaluation": "synthetic adapter; no external provider qualification"
+}

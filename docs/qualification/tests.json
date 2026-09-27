@@ -1,0 +1,24 @@
+{
+  "complete": {
+    "tests": 1266,
+    "failures": 18,
+    "errors": 0,
+    "skips": 4,
+    "raw_report_sha256": "3e409fee6dd35f074ee4ebb1da8276162275f13c7b285706eaa1119e8624335d"
+  },
+  "targeted": {
+    "tests": 75,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "raw_report_sha256": "3b49a5e3649f0beeba292e56cf8efad29c5c74b3474517c8d4e7968f1ee12a66"
+  },
+  "corrected_failures": {
+    "tests": 18,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "raw_report_sha256": "7cfe4265939c16a3193c00537a6563e4bb063dfd8b191156d4eb14aee18eeaf8"
+  },
+  "interpretation": "One full run, then only the 18 failing cases rerun; no claim of a second full green run."
+}
