@@ -1,4 +1,4 @@
-﻿name: CI
+ï»¿name: CI
 on:
   push:
     branches: [dev]
@@ -31,7 +31,7 @@ jobs:
       WM_REQUIRE_POSTGRES: '1'
       WM_DISABLE_PGSERVER_AUTOSTART: '1'
       WM_POSTGRES_TEST_URL: postgresql+pg8000://wm56_ci:synthetic-ci-password@127.0.0.1:5547/wm56_ci_test
-      EMBEDDING_CACHE_DIR: ${{ runner.temp }}/wm56-models
+      EMBEDDING_CACHE_DIR: ${{ github.workspace }}/.model-cache
       LLM_ENABLED: 'false'
       PAPPERS_ENABLED: 'false'
       SESSION_SECRET: synthetic-ci-session-only

@@ -38,6 +38,9 @@ reportee avant promotion. Matrice Windows/Linux complete, second PC,
 multi-navigateurs, concurrence, service Windows automatique et automatismes
 de deploiement reportes. Aucun email, paiement ni LLM reel qualifie.
 
-**Cloture technique.** Verification du clone propre, du SHA distant et du run CI
-consignee dans la preuve de livraison finale ; ne pas confondre configuration
-CI presente et run effectivement reussi.
+**Cloture technique.** Clone propre de `77e5f7c` installe : 111/111 versions,
+`pip check`, fermeture des dependances et imports reussis. Historique distant
+controle : deux commits, 378 blobs uniques, aucun artefact interdit ; fichiers
+identiques octet par octet a la copie testee. Premier run CI rejete avant tout
+job (contexte `runner.temp` invalide au niveau job), corrige dans le workflow.
+Le resultat du run corrige reste a constater ; audit vert non revendique.
