@@ -1,27 +1,35 @@
-# Render Blueprint — WinMarket AI, lot 58. PREPARED, NOT DEPLOYED (no Render account access from this
-# session). Review docs/DEPLOY_RENDER.md before applying. Plan/region/sizeGB below are conservative
-# placeholders — every one of them is a real, billed choice; confirm cost before creating anything.
+# Render Blueprint — WinMarket AI, demonstration target. Review docs/DEPLOY_RENDER.md before applying.
+# Plans, region and disk size below are real choices: the Blueprint summary shown by the Render Dashboard
+# (cost included) must be checked and approved before anything is created.
 databases:
   - name: winmarket-ai-58-db
-    plan: basic-256mb
-    postgresMajorVersion: "16"
-    region: oregon
+    plan: free  # temporary demonstration database — Render free databases EXPIRE; record the date shown in the Dashboard
+    postgresMajorVersion: "16"  # immutable after creation
+    region: frankfurt  # immutable after creation — must match the web service region
     ipAllowList: []  # Render-managed network only; the app service reaches it over Render's private network
 
 services:
   - name: winmarket-ai-58
     type: web
     runtime: python
-    region: oregon
-    plan: starter
+    region: frankfurt
+    plan: standard
+    numInstances: 1  # a persistent disk means a single instance; see also --workers 1 below
     branch: dev
-    autoDeploy: false  # controlled deploys only — "Deploy latest commit" / "After CI checks pass" from the Dashboard
+    autoDeployTrigger: "off"  # controlled deploys only — "Manual Deploy" from the Dashboard or via MCP
+    healthCheckPath: /healthz
     buildCommand: pip install -r requirements.lock.txt
     # Migrations run BEFORE traffic is cut over to the new instance. The persistent disk is NOT mounted
-    # here (Render: disks are unavailable during build/pre-deploy) — this step needs the database only.
-    preDeployCommand: python -m alembic upgrade head
-    # The disk IS mounted here (this is the running instance). Model prep is idempotent and
-    # hash-verified (src/rag/model_artifact.json) — cheap to re-run on every boot once cached on disk.
+    # here (Render: disks are unavailable during build/pre-deploy), yet importing src.core.config creates
+    # DATA_DIR/OUTPUT_DIR/LOGS_DIR. Those three are redirected to throwaway /tmp paths FOR THIS COMMAND ONLY
+    # (migrations need the database, never the files); the running service keeps the /var/data paths below.
+    preDeployCommand: >-
+      DATA_DIR=/tmp/wm-predeploy/data
+      OUTPUT_DIR=/tmp/wm-predeploy/data/outputs
+      LOGS_DIR=/tmp/wm-predeploy/logs
+      python -m alembic upgrade head
+    # The disk IS mounted here (this is the running instance). Model prep is hash-verified
+    # (src/rag/model_artifact.json); the first boot downloads it to the disk, later boots reuse that cache.
     # --workers 1 is REQUIRED: main.py's startup reconciles jobs and starts a background sweeper: more
     # than one worker process would run both independently against the same database.
     startCommand: >-
@@ -30,8 +38,10 @@ services:
     disk:
       name: winmarket-ai-58-data
       mountPath: /var/data
-      sizeGB: 10
+      sizeGB: 2
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.10"  # the version the dependency lock is qualified on
       - key: APP_ENV
         value: production
       - key: DATABASE_URL
@@ -39,9 +49,9 @@ services:
           name: winmarket-ai-58-db
           property: connectionString
       - key: BASE_URL
-        sync: false  # the real https://<service>.onrender.com URL (or custom domain), known only after first create
+        sync: false  # required from the FIRST pre-deploy; see docs/DEPLOY_RENDER.md §4 — expected value, then compared with the real URL
       - key: SESSION_SECRET
-        sync: false  # generate locally: python -c "import secrets; print(secrets.token_urlsafe(48))" — paste once, never in Git
+        sync: false  # generated locally by the operator, pasted once in the Dashboard, never in Git
       - key: DATA_DIR
         value: /var/data/app-data
       - key: OUTPUT_DIR
@@ -56,15 +66,10 @@ services:
         value: "true"
       - key: STORAGE_BACKEND
         value: local
+      # Optional providers stay OFF for the first start. Their keys (ANTHROPIC_API_KEY, OPENAI_API_KEY,
+      # MISTRAL_API_KEY, PAPPERS_API_TOKEN) are deliberately NOT declared here, so the Blueprint never asks
+      # for them; add them later in the service's Environment tab, then flip the matching flag.
       - key: LLM_ENABLED
-        value: "false"  # explicit product choice deferred to the user — flip to "true" once LLM_PROVIDER_PRIORITY keys are set
-      - key: ANTHROPIC_API_KEY
-        sync: false
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: MISTRAL_API_KEY
-        sync: false
-      - key: PAPPERS_API_TOKEN
-        sync: false
+        value: "false"
       - key: PAPPERS_ENABLED
         value: "false"

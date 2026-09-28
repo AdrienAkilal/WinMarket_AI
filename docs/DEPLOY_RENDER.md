@@ -1,108 +1,131 @@
-# Déploiement Render — préparé, non exécuté (lot 58)
+# Déploiement Render — cible de démonstration
 
-**Statut : fichiers prêts (`render.yaml`, ce guide) ; aucune ressource Render n'a été créée depuis cette
-session (pas d'accès Dashboard/API/CLI Render ici).** Toute création de service/base ci-dessous est
-**facturée** — valider ressources, région et coût avant de cliquer quoi que ce soit.
+`render.yaml` décrit une cible de **démonstration** : une instance FastAPI (Uvicorn, 1 worker), une base
+PostgreSQL Render + `pgvector` dans la même région, un disque persistant privé. Branche `dev`, déploiement
+manuel uniquement. Ce guide ne constate aucun déploiement : il décrit la procédure et les vérifications.
 
-Cible : une instance FastAPI (Uvicorn, 1 worker), PostgreSQL managé Render + `pgvector` dans la même
-région, disque persistant privé. Branche `dev`, déploiement contrôlé (jamais automatique à chaque push).
+| Ressource | Blueprint | Remarque |
+|---|---|---|
+| Service web `winmarket-ai-58` | runtime `python` natif, plan `standard`, 1 instance, région `frankfurt` | payant — coût à valider sur le récapitulatif Render |
+| Disque `winmarket-ai-58-data` | 2 Go monté sur `/var/data` | payant, proportionnel à la taille |
+| Base `winmarket-ai-58-db` | PostgreSQL 16, plan `free`, région `frankfurt` | **temporaire : une base gratuite expire** — relever la date affichée par Render dès la création |
+| Python | `PYTHON_VERSION=3.12.10` | version sur laquelle le verrou de dépendances est qualifié |
 
-## 0. Ce qui bloquait avant ce lot (corrigé)
+Région et version majeure de la base sont **immuables** après création. Une base gratuite ne convient pas à des
+données à conserver : pas de sauvegarde, expiration. Aucun compte ni document ancien n'est importé.
 
-Trois emplacements distincts refusaient structurellement toute URL non-loopback ou tout `BASE_URL` non
-`http://127.0.0.1:...` : `src/core/environment_guard.py::validate_environment` (config au démarrage),
-`src/core/db_target.py::resolve_database_url` (Alembic), `src/web/database/session.py::get_engine`
-(la connexion réelle de l'application). Les trois acceptent désormais une cible réelle explicitement
-sous `APP_ENV=production` (validée séparément — hôte non-loopback, rôle/base explicites, `BASE_URL`
-HTTPS public, `SESSION_SECRET` réel — jamais un simple contournement des règles locales). Voir
-`tests/test_lot58_deployment_environment.py`.
+## 0. Gardes d'environnement (rappel)
 
-## 1. Base de données (Render PostgreSQL managé)
+`APP_ENV=production` est le commutateur unique qui fait accepter une cible réelle à
+`src/core/environment_guard.py::validate_environment` (config au démarrage),
+`src/core/db_target.py::resolve_database_url` (Alembic) et `src/web/database/session.py::get_engine`
+(connexion applicative) : hôte PostgreSQL non-loopback, rôle et base explicites, `BASE_URL` HTTPS public,
+`SESSION_SECRET` d'au moins 20 caractères. En production, les variables Render ne sont jamais écrasées par
+un fichier `.env`. Voir `tests/test_lot58_deployment_environment.py`.
 
-- Créer une base PostgreSQL Render (`postgresMajorVersion: "16"` ou supérieur — `pgvector` nécessite
-  PostgreSQL 13+, confirmé par la documentation Render). Choisir la MÊME région que le service web.
-- `pgvector` doit être activé explicitement : `CREATE EXTENSION vector;` — la migration `0015` de ce
-  dépôt le fait déjà conditionnellement sur PostgreSQL ; elle s'exécute via `preDeployCommand`
-  (ci-dessous), avec le rôle applicatif fourni par Render (suffisant par défaut d'après la documentation
-  Render — à confirmer en pratique lors du premier déploiement réel).
-- `DATABASE_URL` est fourni automatiquement au service web via `fromDatabase` (voir `render.yaml`) —
-  jamais recopié à la main, jamais affiché dans une commande.
+**Ces contrôles s'exécutent dès l'import de `src.core.config`, donc dès le pre-deploy** : `DATABASE_URL`,
+`BASE_URL` et `SESSION_SECRET` doivent tous être renseignés avant le premier déploiement.
 
-## 2. Disque persistant
+## 1. Base de données
 
-- **Le disque n'est monté QUE pendant l'exécution du service (runtime) — jamais pendant `buildCommand`
-  ni `preDeployCommand`** (confirmé, documentation Render : « you can't access persistent disks during
-  a service's build command or pre-deploy command »). Conséquence directe sur l'ordonnancement
-  ci-dessous : les migrations (qui n'ont besoin que de la base) passent en pre-deploy ; la préparation du
-  modèle d'embeddings (qui écrit sur le disque) passe dans la commande de démarrage elle-même.
-- Ajouter un disque **empêche les déploiements sans coupure** : Render arrête l'instance existante avant
-  de démarrer la nouvelle (quelques secondes d'indisponibilité, annoncées ici — jamais promis "zéro
-  downtime").
-- Tout le stockage privé durable (`DATA_DIR`, `OUTPUT_DIR`, `LOCAL_STORAGE_PATH`, `LOGS_DIR`,
-  `EMBEDDING_CACHE_DIR`) est routé sous le point de montage unique (`/var/data/...` dans `render.yaml`) —
-  jamais un chemin hors disque pour une donnée qui doit survivre à un redéploiement.
+- `DATABASE_URL` est fournie au service par `fromDatabase` (propriété `connectionString`) — jamais recopiée
+  à la main, jamais affichée. L'application choisit elle-même le pilote `pg8000`.
+- `pgvector` : la migration `0015` exécute `CREATE EXTENSION vector` sur PostgreSQL, pendant le pre-deploy,
+  avec le rôle fourni par Render. À confirmer au premier déploiement (§6).
 
-## 3. Commandes (voir `render.yaml` pour la syntaxe exacte)
+## 2. Disque persistant et pre-deploy
+
+- Le disque n'est monté **que pendant l'exécution du service**, jamais pendant `buildCommand` ni
+  `preDeployCommand` (documentation Render).
+- Or l'import de `src.core.config` crée `DATA_DIR`, `OUTPUT_DIR` et `LOGS_DIR`. Le `preDeployCommand`
+  redirige donc **ces trois variables, pour la seule commande de migration**, vers `/tmp/wm-predeploy/...`,
+  jetable. Les migrations n'ont besoin que de la base. Les autres chemins (`LOCAL_STORAGE_PATH`,
+  `EMBEDDING_CACHE_DIR`) sont seulement validés à l'import, jamais créés.
+- La commande de démarrage n'a aucune surcharge : le service en cours d'exécution utilise les chemins
+  `/var/data/...` de `render.yaml`, sur le disque persistant.
+- Un disque impose une instance unique et empêche les déploiements sans coupure : Render arrête l'instance
+  existante avant de démarrer la nouvelle (quelques secondes d'indisponibilité).
+
+## 3. Commandes (syntaxe exacte : `render.yaml`)
 
 | Étape | Commande | Disque monté ? |
 |---|---|---|
 | Build | `pip install -r requirements.lock.txt` | non |
-| Pre-Deploy | `python -m alembic upgrade head` | non (n'en a pas besoin — base de données uniquement) |
+| Pre-Deploy | `DATA_DIR=/tmp/... OUTPUT_DIR=/tmp/... LOGS_DIR=/tmp/... python -m alembic upgrade head` | non |
 | Start | `python scripts/prepare_model.py --cache "$EMBEDDING_CACHE_DIR" && python -m uvicorn main:app --host 0.0.0.0 --port "$PORT" --workers 1` | oui |
 
-`--workers 1` est **obligatoire** : `main.py` réconcilie les jobs interrompus et démarre un balayage
-périodique (`expiry_sweeper`) à chaque démarrage de processus — plusieurs workers dupliqueraient ces
-deux mécanismes contre la même base, jamais qualifié à ce jour.
+Health check Render : `/healthz` (vivacité seule). `/readyz` vérifie en plus la base (`SELECT 1`).
 
-`scripts/prepare_model.py` est idempotent et vérifié par hash (`src/rag/model_artifact.json`) : une fois
-le modèle présent sur le disque persistant, les redémarrages suivants ne retéléchargent rien.
+`--workers 1` est **obligatoire** : `main.py` réconcilie les jobs interrompus et démarre le balayage
+périodique (`expiry_sweeper`) à chaque démarrage de processus.
+
+`scripts/prepare_model.py` vérifie le modèle par hash (`src/rag/model_artifact.json`). Le premier démarrage le
+télécharge sur le disque persistant (démarrage plus long) ; les suivants réutilisent ce cache.
 
 ## 4. Variables d'environnement
 
-Voir `render.yaml` pour la liste complète. Points notables :
-- `APP_ENV=production` est LE commutateur qui active à la fois la validation de déploiement (§0) et les
-  cookies `Secure` déjà conditionnés dessus (`src/web/security/csrf.py`, `src/web/auth/session_cookie.py`
-  — code déjà existant, aucun changement nécessaire ici).
-- `SESSION_SECRET`/les clés LLM/`PAPPERS_API_TOKEN` sont `sync: false` : Render demande leur valeur une
-  fois à la création, jamais stockée dans `render.yaml` ni dans Git. Générer `SESSION_SECRET`
-  localement : `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
-- `BASE_URL` est `sync: false` car son hôte réel (`<service>.onrender.com` ou un domaine personnalisé)
-  n'est connu qu'après la première création du service.
-- Aucune clé LLM n'est fournie ici — `LLM_ENABLED=false` par défaut dans `render.yaml` ; les activer est
-  une décision produit séparée, à prendre explicitement.
+Valeurs fixes : voir `render.yaml`. Deux valeurs sont demandées par le Dashboard à la création
+(`sync: false`) :
 
-## 5. Opérateur (activation manuelle, sans paiement)
+- **`SESSION_SECRET`** : générée localement par l'opérateur, par exemple
+  `python -c "import secrets; print(secrets.token_urlsafe(48))"`, collée une seule fois dans le champ
+  Render. Jamais dans Git, un chat, un ticket ou une capture.
+- **`BASE_URL`** : origine publique HTTPS, sans chemin ni `/` final. Elle sert aux liens de
+  réinitialisation de mot de passe et doit être **exactement** l'URL publique du service.
+  1. **À la création**, saisir l'adresse **prévue** `https://winmarket-ai-58.onrender.com`. C'est une
+     hypothèse : Render peut attribuer un autre sous-domaine si ce nom est déjà pris ailleurs.
+  2. **Après création**, relever l'URL réellement affichée par Render pour le service et la comparer à la
+     valeur saisie.
+  3. Si elles diffèrent, corriger `BASE_URL` dans l'onglet Environment, puis redéployer manuellement.
+  4. **Aucune utilisation fonctionnelle ni activation de compte avant cette comparaison.**
 
-`scripts/operator_access.py` accepte désormais une configuration par variables d'environnement réelles
-(sans `--env-file`) — même autorité, même règles métier qu'en local :
+Fournisseurs facultatifs : `LLM_ENABLED=false` et `PAPPERS_ENABLED=false` au premier démarrage. Leurs clés
+(`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `MISTRAL_API_KEY`, `PAPPERS_API_TOKEN`) ne sont volontairement pas
+déclarées dans `render.yaml`, pour que le Blueprint ne les demande pas. Pour les activer plus tard, les ajouter
+dans l'onglet Environment du service, passer le drapeau correspondant à `true`, puis redéployer. Cette
+activation est une décision distincte, et le premier appel réel doit être autorisé explicitement.
+
+## 5. Création depuis le Dashboard
+
+1. Dashboard Render → **New** → **Blueprint**.
+2. Connecter le dépôt `AdrienAkilal/WinMarket_AI`, branche **`dev`**, fichier `render.yaml`.
+3. Renseigner `SESSION_SECRET` et `BASE_URL` (§4).
+4. Vérifier le récapitulatif : service `standard` à Frankfurt, disque de 2 Go, base `free` PostgreSQL 16 à
+   Frankfurt, et **le coût affiché**. Confirmer seulement si ce récapitulatif est validé.
+5. Relever la **date d'expiration** de la base gratuite.
+
+## 6. Vérifications au premier déploiement
+
+1. Build : installation du verrou sous Python 3.12.10.
+2. Pre-deploy : `alembic upgrade head` jusqu'à la dernière révision, sans erreur d'écriture.
+3. Extension `vector` présente dans la base.
+4. Démarrage : modèle vérifié, Uvicorn à l'écoute, `/healthz` et `/readyz` (`database: ok`) répondent.
+5. `BASE_URL` égale à l'URL réellement attribuée (§4).
+6. Une inscription passe en attente, puis une activation manuelle (§7) la débloque.
+7. Un document synthétique s'indexe, se télécharge, et reste présent après un redémarrage du service puis
+   après un redéploiement manuel.
+8. Recherche RAG en mode `hybrid`/`hybrid_partial` réel, avec `RAG_HYBRID_MODE_ENABLED=true`.
+
+## 7. Opérateur (activation manuelle, sans paiement)
+
+Depuis le Shell Render du service déployé, où les variables du service sont déjà celles du processus
+(aucun `--env-file`) :
 ```
 python scripts/operator_access.py --credential-file /var/data/operator.token bootstrap --actor "<nom>"
 python scripts/operator_access.py --credential-file /var/data/operator.token list
 python scripts/operator_access.py --credential-file /var/data/operator.token activate --user-id <uuid> --organization-id <uuid> --expires-at <ISO_UTC> --max-analyses <n> --reason "Accès manuel autorisé"
+python scripts/operator_access.py --credential-file /var/data/operator.token revoke --user-id <uuid> --organization-id <uuid> --reason "Fin accès manuel"
 ```
-Exécuter ces commandes via le Shell Render du service déployé (les variables d'environnement du service
-sont déjà celles du process — aucun fichier `.env` à fournir).
+Le fichier d'identité opérateur reste sur le disque privé, jamais affiché ni copié hors du service.
 
-## 6. Vérifications avant d'ouvrir le service (voir aussi §G du lot)
+## 8. Retour arrière
 
-1. `/healthz` et `/readyz` répondent (déjà implémentés, `qa/smoke.py` les vérifie déjà en CI) — configurer
-   le "Health Check Path" du service Render sur `/healthz`.
-2. Une inscription passe en attente, une activation manuelle via `operator_access.py` la débloque.
-3. Un document synthétique s'indexe, se télécharge, et reste présent après un redémarrage du service
-   (le disque est bien celui qui persiste) puis après un redéploiement contrôlé.
-4. Recherche RAG en mode `hybrid`/`hybrid_partial` réel (jamais seulement annoncé) une fois
-   `RAG_HYBRID_MODE_ENABLED=true` et l'extension `vector` confirmée active.
+L'environnement Render se déploie depuis `dev`, jamais depuis `main`. `main` ne reçoit une promotion que
+par PR explicite après recette. Supprimer une ressource Render (service, disque, base) efface ses données :
+action manuelle, jamais automatique.
 
-## 7. Retour arrière
+## 9. Décisions restant hors de ce guide
 
-Aucune bascule de trafic public n'a lieu tant que ces vérifications ne sont pas faites sur
-l'environnement de validation Render (déployé depuis `dev`, jamais `main`). `main` ne reçoit une
-promotion que par PR explicite après recette — jamais une fusion automatique.
-
-## 8. Ce qui reste explicitement à décider (jamais tranché ici)
-
-- Plan payant exact (base de données, service web, taille du disque) et coût mensuel associé — les
-  valeurs dans `render.yaml` sont des placeholders conservateurs, pas un choix validé.
-- Activation ou non des clés LLM réelles.
-- Domaine personnalisé ou sous-domaine `onrender.com` par défaut.
-- Durée de la fenêtre de validation avant toute annonce publique.
+- Plan durable de la base avant toute donnée à conserver (la base gratuite expire).
+- Activation ou non des fournisseurs LLM et Pappers.
+- Domaine personnalisé ou sous-domaine `onrender.com`.
