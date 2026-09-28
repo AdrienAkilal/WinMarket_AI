@@ -23,9 +23,11 @@ docs/api/B14_T1_CSRF_RATE_LIMIT_CONTRACT.md.
 """
 from __future__ import annotations
 
+import functools
 import uuid
 from datetime import datetime, timezone
 
+from anyio import CapacityLimiter, to_thread
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
@@ -37,12 +39,81 @@ from src.core.logger import get_agent_logger
 from src.rag import private_rag_manager
 from src.web.auth.access_context import AccessContext, get_access_context, require_permission
 from src.web.database.repositories import knowledge as knowledge_repo
-from src.web.database.session import get_db
+from src.web.database.session import get_db, get_session_factory
 from src.web.knowledge import documents_service, extraction, storage
 from src.web.security.csrf import require_csrf
 
 router = APIRouter(prefix="/api/knowledge/documents")
 logger = get_agent_logger("web_knowledge_documents")
+
+# Lot 59: ingestion (extraction, local embeddings, DB writes) is synchronous and CPU-bound. Called inline from
+# these `async def` routes it blocked Uvicorn's single event loop for the whole upload, /healthz timed out and
+# Render restarted the instance mid-import (observed on the demo deployment). It now runs in a worker thread,
+# with its own Session, and at most KNOWLEDGE_INGEST_MAX_CONCURRENCY at once: this limiter replaces the global
+# thread pool for these calls, and a request waiting for a slot waits asynchronously, holding no thread.
+INGEST_LIMITER = CapacityLimiter(max(1, config.KNOWLEDGE_INGEST_MAX_CONCURRENCY))
+
+
+async def _run_ingestion(work, **kwargs):
+    return await to_thread.run_sync(functools.partial(work, **kwargs), limiter=INGEST_LIMITER)
+
+
+def _ingestion_session(work):
+    """Runs `work(db)` in a Session owned by the calling worker thread: rolled back on any error, always closed.
+    `work` commits itself, and builds its response BEFORE returning, while the Session is still open."""
+    db = get_session_factory()()
+    try:
+        return work(db)
+    except BaseException:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+def _upload_response(result) -> dict:
+    payload = {"document": _document_payload(result.document), "version": _version_summary(result.version)}
+    if result.version.extraction_status != "ready":
+        raise HTTPException(422, payload)
+    return payload
+
+
+def _ingest_new_document(*, organization_id: uuid.UUID, owner_user_id: uuid.UUID, filename: str, raw: bytes) -> dict:
+    def work(db: Session) -> dict:
+        try:
+            result = documents_service.upload_document(
+                db, organization_id=organization_id, owner_user_id=owner_user_id,
+                original_filename=filename, raw=raw, llm=ClaudeClient(),
+            )
+        except extraction.UnsupportedContentError as exc:
+            raise HTTPException(422, {"error_code": exc.error_code, "message": str(exc)})
+        except documents_service.CorpusFullError as exc:
+            raise HTTPException(409, {"error_code": "CORPUS_FULL", "message": str(exc)})
+        db.commit()
+        return _upload_response(result)
+    return _ingestion_session(work)
+
+
+def _ingest_new_version(
+    *, organization_id: uuid.UUID, owner_user_id: uuid.UUID, document_id: uuid.UUID, filename: str, raw: bytes,
+) -> dict:
+    def work(db: Session) -> dict:
+        # Re-read in THIS Session with the same owner scope: the document may have been deleted meanwhile.
+        document = knowledge_repo.get_document_for_owner(
+            db, document_id=document_id, organization_id=organization_id, owner_user_id=owner_user_id
+        )
+        if document is None or document.status != "active":
+            raise _not_found()
+        try:
+            result = documents_service.add_version(
+                db, organization_id=organization_id, owner_user_id=owner_user_id, document=document,
+                original_filename=filename, raw=raw, llm=ClaudeClient(),
+            )
+        except extraction.UnsupportedContentError as exc:
+            raise HTTPException(422, {"error_code": exc.error_code, "message": str(exc)})
+        db.commit()
+        return _upload_response(result)
+    return _ingestion_session(work)
 
 
 def _not_found() -> HTTPException:
@@ -116,23 +187,12 @@ async def upload_document(
     except documents_service.DocumentTooLargeError:
         raise HTTPException(413, f"Fichier supérieur à la limite de {config.KNOWLEDGE_MAX_FILE_SIZE_MB} Mio.")
 
-    try:
-        result = documents_service.upload_document(
-            db, organization_id=ctx.organization_id, owner_user_id=ctx.user.id,
-            original_filename=file.filename, raw=raw, llm=ClaudeClient(),
-        )
-    except extraction.UnsupportedContentError as exc:
-        db.rollback()
-        raise HTTPException(422, {"error_code": exc.error_code, "message": str(exc)})
-    except documents_service.CorpusFullError as exc:
-        db.rollback()
-        raise HTTPException(409, {"error_code": "CORPUS_FULL", "message": str(exc)})
-
-    db.commit()
-    payload = {"document": _document_payload(result.document), "version": _version_summary(result.version)}
-    if result.version.extraction_status != "ready":
-        raise HTTPException(422, payload)
-    return payload
+    organization_id, owner_user_id = ctx.organization_id, ctx.user.id
+    db.close()  # the ingestion uses its own Session; never hold this request's connection while waiting
+    return await _run_ingestion(
+        _ingest_new_document, organization_id=organization_id, owner_user_id=owner_user_id,
+        filename=file.filename, raw=raw,
+    )
 
 
 @router.get("/{document_id}")
@@ -190,20 +250,12 @@ async def upload_version(
     except documents_service.DocumentTooLargeError:
         raise HTTPException(413, f"Fichier supérieur à la limite de {config.KNOWLEDGE_MAX_FILE_SIZE_MB} Mio.")
 
-    try:
-        result = documents_service.add_version(
-            db, organization_id=ctx.organization_id, owner_user_id=ctx.user.id, document=document,
-            original_filename=file.filename, raw=raw, llm=ClaudeClient(),
-        )
-    except extraction.UnsupportedContentError as exc:
-        db.rollback()
-        raise HTTPException(422, {"error_code": exc.error_code, "message": str(exc)})
-
-    db.commit()
-    payload = {"document": _document_payload(result.document), "version": _version_summary(result.version)}
-    if result.version.extraction_status != "ready":
-        raise HTTPException(422, payload)
-    return payload
+    organization_id, owner_user_id = ctx.organization_id, ctx.user.id
+    db.close()  # the ingestion uses its own Session; never hold this request's connection while waiting
+    return await _run_ingestion(
+        _ingest_new_version, organization_id=organization_id, owner_user_id=owner_user_id,
+        document_id=document_id, filename=file.filename, raw=raw,
+    )
 
 
 @router.post("/{document_id}/versions/{version_id}/category")

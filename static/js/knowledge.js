@@ -60,6 +60,7 @@
   const busy = new Set();   // keys of operations in flight (double-submit guard)
 
   const feedbackBox = $("knowledge-feedback");
+  const warningBox = $("knowledge-warning");
   const errorBox = $("knowledge-error");
   const listBox = $("knowledge-list");
   const resultsBox = $("knowledge-search-results");
@@ -68,15 +69,23 @@
   // A hidden box also loses its text: an earlier message never lingers for a screen reader.
   function clearMessages() {
     feedbackBox.hidden = true; clear(feedbackBox);
+    warningBox.hidden = true; clear(warningBox);
     errorBox.hidden = true; clear(errorBox);
   }
   function showFeedback(text) {
-    errorBox.hidden = true; clear(errorBox);
+    clearMessages();
     feedbackBox.hidden = false;
     feedbackBox.textContent = text;
   }
+  // Lot 59: a batch where only SOME files were added is neither a success nor a failure.
+  function showWarning(text) {
+    clearMessages();
+    warningBox.hidden = false;
+    warningBox.textContent = text;
+  }
   function showError(text, extra) {
     feedbackBox.hidden = true; clear(feedbackBox);
+    warningBox.hidden = true; clear(warningBox);
     errorBox.hidden = false;
     clear(errorBox);
     errorBox.append(document.createTextNode(text));
@@ -290,11 +299,21 @@
   }
 
   /* ── Rendering ── */
+  // Lot 59: a list or summary that could not be loaded says so — never a count left over from before, never "0".
+  function markKpisUnavailable() {
+    $("knowledge-total-docs").textContent = "Indisponible";
+    $("knowledge-total-kb").textContent = "Indisponible";
+    $("knowledge-last-update").textContent = "Indisponible";
+  }
+
   function renderKpis(summary) {
     if (summary) {
       $("knowledge-total-docs").textContent = String(summary.total_documents);
       // The summary route floors to whole Ko: a small file must not read "0 Ko".
       $("knowledge-total-kb").textContent = summary.total_kb === 0 && summary.total_documents > 0 ? "< 1 Ko" : summary.total_kb + " Ko";
+    } else {
+      $("knowledge-total-docs").textContent = "Indisponible";
+      $("knowledge-total-kb").textContent = "Indisponible";
     }
     const latest = documents.map((d) => d.updated_at).sort().pop();
     $("knowledge-last-update").textContent = latest ? formatDate(latest) : "—";
@@ -401,7 +420,7 @@
     // preventScroll: moving the focus must never move the page under the user's pointer (a smooth scroll to the
     // message at the top made a click on "Ajouter" right after a deletion miss its target — reproduced 2 times in 5)
     if (target) { target.focus({ preventScroll: true }); return; }
-    const box = !feedbackBox.hidden ? feedbackBox : (!errorBox.hidden ? errorBox : null);
+    const box = [feedbackBox, warningBox, errorBox].find((b) => !b.hidden) || null;
     if (box) { box.tabIndex = -1; box.focus({ preventScroll: true }); }
   }
 
@@ -451,7 +470,7 @@
         openId ? api("GET", "/api/knowledge/documents/" + encodeURIComponent(openId)) : Promise.resolve(null),
       ]);
       if (listAnswer.stale) return;
-      if (!listAnswer.ok) { renderListFailure(listAnswer); return; }
+      if (!listAnswer.ok) { renderListFailure(listAnswer); markKpisUnavailable(); return; }
       documents = (listAnswer.body && listAnswer.body.documents) || [];
       if (openId && !documents.some((d) => d.id === openId)) { openId = null; detail = null; }
       if (pendingDeleteId && !documents.some((d) => d.id === pendingDeleteId)) pendingDeleteId = null;
@@ -509,6 +528,13 @@
     if (r.status === 409 && detailBody && detailBody.error_code === "CORPUS_FULL") {
       return { ok: false, stop: true, text: label(file) + " : limite de " + MAX_DOCS + " documents atteinte — non ajouté." };
     }
+    if (r.networkError || r.status >= 500) {
+      // Lot 59: the answer was lost (server restarting, proxy 502…), so the file may or may not have been saved.
+      // Never re-sent automatically, and the batch stops: the reloaded list is the only source of truth.
+      const cause = r.networkError ? "serveur injoignable" : "HTTP " + r.status;
+      return { ok: false, unknown: true, stop: true,
+        text: label(file) + " : réponse perdue (" + cause + ") — état inconnu, vérifiez la liste avant de le renvoyer." };
+    }
     const { text } = explain(r, "l'ajout a échoué");
     return { ok: false, text: label(file) + " : " + text };
   }
@@ -534,20 +560,37 @@
     // outcome (success or failure) is named individually; no automatic dedup, no cross-account mixing (each
     // call carries this same, one, authenticated scope), no silent partial success.
     const lines = [];
-    let anyOk = false;
+    const counts = { ok: 0, failed: 0, unknown: 0, notSent: 0 };
+    let sent = 0;
     for (let i = 0; i < files.length; i += 1) {
       status.textContent = `Envoi ${i + 1}/${files.length} : ${files[i].name}…`;
       const outcome = await uploadOne(files[i], status);
       if (outcome.stale) return;
+      sent += 1;
       lines.push(outcome.text);
-      if (outcome.ok) anyOk = true;
-      if (outcome.stop) break; // corpus full: further files would fail identically, avoid useless requests
+      if (outcome.ok) counts.ok += 1; else if (outcome.unknown) counts.unknown += 1; else counts.failed += 1;
+      // corpus full, or an answer lost: further files would fail too — stop, never re-send anything automatically
+      if (outcome.stop) break;
     }
+    counts.notSent = files.length - sent;
+    if (counts.notSent) lines.push(counts.notSent + " fichier(s) non envoyé(s) : l'envoi s'est arrêté, rien n'est renvoyé automatiquement.");
     status.textContent = "";
     input.value = "";
-    const summary = lines.join(" ");
-    if (anyOk) showFeedback(summary); else showError(summary);
+    const { kind, text } = batchSummary(counts, files.length);
+    const summary = text + " " + lines.join(" ");
+    if (kind === "success") showFeedback(summary); else if (kind === "partial") showWarning(summary); else showError(summary);
     await refreshAll();
+  }
+
+  // Lot 59: the banner's colour describes the WHOLE batch — green only when every file was added.
+  function batchSummary(counts, total) {
+    const parts = [counts.ok + " réussi(s)"];
+    if (counts.failed) parts.push(counts.failed + " échoué(s)");
+    if (counts.unknown) parts.push(counts.unknown + " à vérifier");
+    if (counts.notSent) parts.push(counts.notSent + " non envoyé(s)");
+    const kind = counts.ok === total ? "success" : (counts.ok > 0 ? "partial" : "failure");
+    const title = { success: "Import terminé", partial: "Import partiel", failure: "Import échoué" }[kind];
+    return { kind, text: title + " : " + parts.join(", ") + " sur " + total + "." };
   }
 
   async function uploadVersion(d, input, status) {

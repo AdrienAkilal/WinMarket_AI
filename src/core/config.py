@@ -133,6 +133,10 @@ MULTI_CLIENT_MODE = os.getenv("MULTI_CLIENT_MODE", "false").lower() == "true"
 # docs/architecture/B03_PRIVATE_KNOWLEDGE.md for the reasoning.
 KNOWLEDGE_MAX_FILE_SIZE_MB = int(os.getenv("KNOWLEDGE_MAX_FILE_SIZE_MB", "10"))
 KNOWLEDGE_MAX_ACTIVE_DOCUMENTS_PER_CORPUS = int(os.getenv("KNOWLEDGE_MAX_ACTIVE_DOCUMENTS_PER_CORPUS", "100"))
+# Lot 59: how many knowledge ingestions (extraction + local embeddings + DB writes) may run at the same time
+# in this process. Each one is CPU-bound; 1 matches the single-CPU demo instance and keeps uploads that were
+# sequential before (they blocked the event loop) sequential now. Extra uploads wait asynchronously.
+KNOWLEDGE_INGEST_MAX_CONCURRENCY = int(os.getenv("KNOWLEDGE_INGEST_MAX_CONCURRENCY", "1"))
 KNOWLEDGE_MAX_PDF_PAGES = int(os.getenv("KNOWLEDGE_MAX_PDF_PAGES", "200"))
 KNOWLEDGE_MAX_EXTRACTED_CHARS = int(os.getenv("KNOWLEDGE_MAX_EXTRACTED_CHARS", "2_000_000"))
 KNOWLEDGE_MAX_DOCX_PARAGRAPHS = int(os.getenv("KNOWLEDGE_MAX_DOCX_PARAGRAPHS", "20_000"))
