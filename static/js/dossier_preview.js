@@ -186,6 +186,9 @@
       }
       return;
     }
+    // The preview is consumed: hide it, so a second click can never re-send the same confirmation (404).
+    panel.hidden = true;
+    current = null;
     if (typeof onConfirmed === "function") onConfirmed(body.job_id);
   });
 
